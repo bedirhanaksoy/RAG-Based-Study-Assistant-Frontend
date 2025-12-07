@@ -1,0 +1,108 @@
+<svg width="128" height="128" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-3px); }
+    }
+    @keyframes pulse {
+      0%, 100% { r: 1.8; opacity: 0.7; }
+      50% { r: 2.8; opacity: 1; }
+    }
+    @keyframes dash {
+      to { stroke-dashoffset: 0; }
+    }
+    @keyframes drawFrame {
+      0% { stroke-dashoffset: 200; opacity: 0; }
+      100% { stroke-dashoffset: 0; opacity: 1; }
+    }
+    @keyframes drawPages {
+      0% { stroke-dashoffset: 50; opacity: 0; }
+      100% { stroke-dashoffset: 0; opacity: 0.7; }
+    }
+
+    .book-container {
+      animation: float 4s ease-in-out infinite;
+    }
+
+    /* Two-tone palette */
+    .cyan { stroke: #73E3FF; fill: #73E3FF; }
+    .purple { stroke: #B98CFF; fill: #B98CFF; }
+
+    .book-frame {
+      stroke-width: 2.8;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-dasharray: 200;
+      stroke-dashoffset: 200;
+      animation: drawFrame 2.5s ease-out forwards, float 4s ease-in-out infinite;
+    }
+
+    .page-lines {
+      stroke-width: 1.2;
+      stroke-linecap: round;
+      opacity: 0.7;
+      stroke-dasharray: 50;
+      stroke-dashoffset: 50;
+      animation: drawPages 2s ease-out 0.5s forwards;
+    }
+
+    .rag-node {
+      animation: pulse 2s infinite ease-in-out;
+    }
+
+    .rag-line {
+      stroke-width: 1.5;
+      stroke-linecap: round;
+      stroke-dasharray: 8;
+      stroke-dashoffset: 8;
+      animation: dash 1.5s infinite linear;
+      opacity: 0.8;
+    }
+
+    /* New Apple-style bookmark */
+    .bookmark {
+      fill: #B98CFF33;
+      stroke: #B98CFF;
+      stroke-width: 2;
+      stroke-linejoin: round;
+      stroke-linecap: round;
+    }
+  </style>
+
+  <g class="book-container">
+    
+    <!-- Book Frame (two colors left/right) -->
+    <path class="book-frame cyan" 
+          d="M14 18 C14 18 22 22 32 22 C42 22 50 18 50 18 V50 
+             C50 50 42 54 32 54 C22 54 14 50 14 50 V18 Z"/>
+
+    <!-- Book middle divider -->
+    <path class="book-frame purple" d="M32 22 V54"/>
+
+    <!-- Page Lines -->
+    <path class="page-lines cyan" d="M18 28 H28 M18 34 H24 M18 40 H26 M18 46 H28"/>
+    <path class="page-lines purple" d="M36 28 H46 M36 34 H42 M36 40 H46 M36 46 H40"/>
+
+    <!-- New Apple-style Bookmark -->
+    <path class="bookmark"
+          d="M40 18 
+             H46 
+             V34 
+             L43 31 
+             L40 34 
+             Z"/>
+
+    <!-- RAG Nodes & Lines -->
+    <g transform="translate(0,-1)">
+      <line x1="23" y1="31" x2="18" y2="39" class="rag-line cyan" />
+      <line x1="23" y1="31" x2="28" y2="39" class="rag-line purple" />
+      <line x1="18" y1="39" x2="28" y2="39" class="rag-line cyan" />
+
+      <circle cx="23" cy="31" r="2" class="rag-node cyan" />
+      <circle cx="18" cy="39" r="2" class="rag-node cyan" />
+      <circle cx="28" cy="39" r="2" class="rag-node purple" />
+    </g>
+
+  </g>
+</svg>
