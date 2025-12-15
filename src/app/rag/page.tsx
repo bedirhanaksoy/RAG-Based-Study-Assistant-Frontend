@@ -27,19 +27,6 @@ import {
 
 type ChatMode = "ask" | "flashcard"
 
-// Flashcard message type for display
-type FlashcardMessage = {
-  role: "flashcard"
-  topic: string
-  flashcards: FlashcardItem[]
-}
-
-type DisplayMessage = {
-  role: "user" | "assistant"
-  content: string
-  context?: { page_number: number; sentence_chunk: string }[]
-} | FlashcardMessage
-
 export default function RagPage() {
   const { selectedBook, chatHistory, addMessage } = useBookStore()
   const [input, setInput] = useState("")
@@ -48,21 +35,14 @@ export default function RagPage() {
   const [expandedAnswers, setExpandedAnswers] = useState<Set<string>>(new Set())
   const [chatMode, setChatMode] = useState<ChatMode>("ask")
   const [questionCount, setQuestionCount] = useState(3)
-  const [flashcardMessages, setFlashcardMessages] = useState<DisplayMessage[]>([])
   const bottomRef = useRef<HTMLDivElement>(null)
 
-  // Get messages for current book (combine regular messages with flashcard messages)
-  const regularMessages = selectedBook ? chatHistory[selectedBook]?.messages || [] : []
-  const allMessages: DisplayMessage[] = [...regularMessages, ...flashcardMessages]
+  // Get messages for current book
+  const messages = selectedBook ? chatHistory[selectedBook]?.messages || [] : []
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [allMessages, isLoading])
-
-  // Clear flashcard messages when book changes
-  useEffect(() => {
-    setFlashcardMessages([])
-  }, [selectedBook])
+  }, [messages, isLoading])
 
   const toggleContext = (key: string) => {
     setExpandedContexts(prev => {
@@ -114,30 +94,48 @@ export default function RagPage() {
         setIsLoading(false)
       }
     } else {
-      // Flashcard mode
-      setFlashcardMessages(prev => [...prev, { role: "user", content: question }])
+      // Flashcard mode - add to same message history
+      addMessage(selectedBook, { role: "flashcard-request", content: question })
 
       try {
         setIsLoading(true)
         const res = await generateFlashcards(question, selectedBook, questionCount)
-        setFlashcardMessages(prev => [...prev, { 
+        addMessage(selectedBook, { 
           role: "flashcard", 
+          content: "",
           topic: res.topic,
           flashcards: res.flashcards 
-        }])
+        })
       } catch {
-        setFlashcardMessages(prev => [...prev, { 
+        addMessage(selectedBook, { 
           role: "assistant", 
           content: "⚠ An error occurred while generating flashcards." 
-        }])
+        })
       } finally {
         setIsLoading(false)
       }
     }
   }
 
-  const renderMessage = (msg: DisplayMessage, idx: number) => {
-    if (msg.role === "flashcard") {
+  const renderMessage = (msg: typeof messages[number], idx: number) => {
+    // Render flashcard request (user message for flashcard)
+    if (msg.role === "flashcard-request") {
+      return (
+        <div key={idx} className="flex justify-end">
+          <div className="rounded-2xl px-4 py-3 max-w-[80%] bg-primary text-primary-foreground">
+            <div className="prose prose-sm dark:prose-invert max-w-none">
+              <p className="m-0">{msg.content}</p>
+            </div>
+            <div className="flex items-center gap-1 mt-2 text-xs opacity-70">
+              <GraduationCap className="h-3 w-3" />
+              <span>Flashcard</span>
+            </div>
+          </div>
+        </div>
+      )
+    }
+
+    if (msg.role === "flashcard" && msg.flashcards) {
       // Render flashcard response
       return (
         <div key={`flashcard-${idx}`} className="flex justify-start">
@@ -317,7 +315,7 @@ export default function RagPage() {
                 <p className="text-sm">Select a book from the sidebar or upload a new one</p>
               </div>
             </div>
-          ) : allMessages.length === 0 ? (
+          ) : messages.length === 0 ? (
             <div className="flex items-center justify-center h-full">
               <div className="text-center text-muted-foreground max-w-md">
                 <p className="text-lg mb-2">Start a conversation</p>
@@ -328,7 +326,7 @@ export default function RagPage() {
             </div>
           ) : (
             <div className="space-y-4 max-w-4xl mx-auto">
-              {allMessages.map((msg, idx) => renderMessage(msg, idx))}
+              {messages.map((msg, idx) => renderMessage(msg, idx))}
 
               {isLoading && (
                 <div className="flex justify-start">

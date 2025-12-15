@@ -26,16 +26,22 @@ export async function askRag(query: string, pdfName: string = "human") {
 }
 
 // === GET CHAT HISTORY ===
-export type ChatHistoryMessage = {
-  role: "user" | "assistant"
-  content: string
+export type BackendFlashcardContent = {
+  question: string
+  answer: string
+  context: { page_number: number; sentence_chunk: string }[]
+}
+
+export type BackendChatHistoryMessage = {
+  role: "user" | "assistant" | "flashcard"
+  content: string | BackendFlashcardContent[]
   context?: { page_number: number; sentence_chunk: string }[]
 }
 
-export async function getChatHistory(bookName: string): Promise<ChatHistoryMessage[]> {
+export async function getChatHistory(bookName: string): Promise<BackendChatHistoryMessage[]> {
   const response = await apiClient.get<{
     book_name: string
-    history: ChatHistoryMessage[]
+    history: BackendChatHistoryMessage[]
   }>(`/chat/${encodeURIComponent(bookName)}`)
   return response.data.history
 }

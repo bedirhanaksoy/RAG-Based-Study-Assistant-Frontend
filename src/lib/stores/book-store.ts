@@ -5,10 +5,18 @@ type ContextItem = {
   sentence_chunk: string
 }
 
+type FlashcardItem = {
+  question: string
+  answer: string
+  context: ContextItem[]
+}
+
 type ChatMessage = {
-  role: "user" | "assistant"
+  role: "user" | "assistant" | "flashcard-request" | "flashcard"
   content: string
   context?: ContextItem[]
+  flashcards?: FlashcardItem[]
+  topic?: string
 }
 
 type BookChat = {

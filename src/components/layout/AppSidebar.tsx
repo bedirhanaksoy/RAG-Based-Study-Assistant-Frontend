@@ -41,7 +41,29 @@ export function AppSidebar() {
       try {
         const history = await getChatHistory(book)
         if (history && history.length > 0) {
-          setChatHistory(book, history)
+          // Transform backend format to frontend format
+          const transformedHistory = history.map((msg) => {
+            if (msg.role === "flashcard" && Array.isArray(msg.content)) {
+              // Transform flashcard message from backend format
+              return {
+                role: "flashcard" as const,
+                content: "",
+                topic: "Flashcards",
+                flashcards: msg.content.map((fc) => ({
+                  question: fc.question,
+                  answer: fc.answer,
+                  context: fc.context || []
+                }))
+              }
+            }
+            // Regular user/assistant message
+            return {
+              role: msg.role as "user" | "assistant",
+              content: msg.content as string,
+              context: msg.context
+            }
+          })
+          setChatHistory(book, transformedHistory)
         }
       } catch (error) {
         console.error('Failed to fetch chat history:', error)
