@@ -89,3 +89,13 @@ export async function uploadRagPdf(file: File) {
 
   return response.data
 }
+
+// === DELETE BOOK ===
+export async function deleteBook(bookName: string): Promise<{ message: string; book_name: string }> {
+  const response = await apiClient.delete<{
+    message: string
+    book_name: string
+    deleted_files: string[]
+  }>(`/books/${encodeURIComponent(bookName)}`)
+  return response.data
+}

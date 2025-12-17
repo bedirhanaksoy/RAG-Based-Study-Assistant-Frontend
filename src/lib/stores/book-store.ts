@@ -38,6 +38,7 @@ interface BookStore {
   books: string[]
   setBooks: (books: string[]) => void
   addBook: (book: string) => void
+  removeBook: (book: string) => void
 }
 
 export const useBookStore = create<BookStore>((set) => ({
@@ -75,4 +76,13 @@ export const useBookStore = create<BookStore>((set) => ({
     set((state) => ({
       books: state.books.includes(book) ? state.books : [...state.books, book],
     })),
+  removeBook: (book) =>
+    set((state) => {
+      const { [book]: _, ...restChatHistory } = state.chatHistory
+      return {
+        books: state.books.filter((b) => b !== book),
+        chatHistory: restChatHistory,
+        selectedBook: state.selectedBook === book ? null : state.selectedBook,
+      }
+    }),
 }))

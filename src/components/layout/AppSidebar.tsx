@@ -1,13 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import Image from 'next/image'
 
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { useSidebarStore } from '@/lib/stores/sidebar-store'
+import { useSidebarStore, MIN_SIDEBAR_WIDTH, MAX_SIDEBAR_WIDTH } from '@/lib/stores/sidebar-store'
 import { useBookStore } from '@/lib/stores/book-store'
-import { getBooks, getChatHistory } from '@/lib/rag-api'
+import { getBooks, getChatHistory, deleteBook } from '@/lib/rag-api'
 import {
   Tooltip,
   TooltipContent,
@@ -22,15 +22,61 @@ import {
   FileUp,
   BookOpen,
   Plus,
+  Trash2,
 } from 'lucide-react'
 
 import { UploadPdfDialog } from '@/components/rag/UploadPdfDialog'
 
 export function AppSidebar() {
-  const { isCollapsed, toggleCollapse } = useSidebarStore()
-  const { books, setBooks, selectedBook, setSelectedBook, addBook, setChatHistory, chatHistory } = useBookStore()
+  const { isCollapsed, toggleCollapse, sidebarWidth, setSidebarWidth } = useSidebarStore()
+  const { books, setBooks, selectedBook, setSelectedBook, addBook, setChatHistory, chatHistory, removeBook } = useBookStore()
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const [isResizing, setIsResizing] = useState(false)
+  const sidebarRef = useRef<HTMLDivElement>(null)
+
+  // Handle resize
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    setIsResizing(true)
+  }, [])
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizing) return
+      const newWidth = e.clientX
+      setSidebarWidth(newWidth)
+    }
+
+    const handleMouseUp = () => {
+      setIsResizing(false)
+    }
+
+    if (isResizing) {
+      document.addEventListener('mousemove', handleMouseMove)
+      document.addEventListener('mouseup', handleMouseUp)
+      document.body.style.cursor = 'ew-resize'
+      document.body.style.userSelect = 'none'
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+  }, [isResizing, setSidebarWidth])
+
+  // Handle delete book
+  const handleDeleteBook = async (e: React.MouseEvent, book: string) => {
+    e.stopPropagation() // Prevent triggering book selection
+    try {
+      await deleteBook(book)
+      removeBook(book)
+    } catch (error) {
+      console.error('Failed to delete book:', error)
+    }
+  }
 
   // Fetch chat history when a book is selected
   const handleSelectBook = async (book: string) => {
@@ -77,10 +123,6 @@ export function AppSidebar() {
       try {
         const bookList = await getBooks()
         setBooks(bookList)
-        // Select first book if none selected
-        if (bookList.length > 0 && !selectedBook) {
-          handleSelectBook(bookList[0])
-        }
       } catch (error) {
         console.error('Failed to fetch books:', error)
       } finally {
@@ -101,9 +143,11 @@ export function AppSidebar() {
   return (
     <TooltipProvider delayDuration={0}>
       <div
+        ref={sidebarRef}
+        style={{ width: isCollapsed ? '4rem' : `${sidebarWidth}px` }}
         className={cn(
-          'app-sidebar flex h-full flex-col bg-sidebar border-sidebar-border border-r transition-all duration-300',
-          isCollapsed ? 'w-16' : 'w-72'
+          'app-sidebar relative flex h-full flex-col bg-sidebar border-sidebar-border border-r transition-all',
+          isResizing ? 'transition-none' : 'duration-300'
         )}
       >
         {/* HEADER */}
@@ -199,29 +243,38 @@ export function AppSidebar() {
                 </div>
               ) : (
                 books.map((book) => (
-                  <Tooltip key={book}>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant={selectedBook === book ? 'secondary' : 'ghost'}
-                        onClick={() => handleSelectBook(book)}
-                        className={cn(
-                          'w-full text-sidebar-foreground',
-                          selectedBook === book && 'bg-sidebar-accent text-sidebar-accent-foreground',
-                          isCollapsed ? 'justify-center px-2' : 'justify-start gap-3'
-                        )}
-                      >
-                        <BookOpen className="h-4 w-4 flex-shrink-0" />
-                        {!isCollapsed && (
-                          <span className="truncate text-left flex-1">
-                            {book}
-                          </span>
-                        )}
-                      </Button>
-                    </TooltipTrigger>
-                    {isCollapsed && (
+                  <div key={book} className="relative group/book">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant={selectedBook === book ? 'secondary' : 'ghost'}
+                          onClick={() => handleSelectBook(book)}
+                          className={cn(
+                            'w-full text-sidebar-foreground overflow-hidden',
+                            selectedBook === book && 'bg-sidebar-accent text-sidebar-accent-foreground',
+                            isCollapsed ? 'justify-center px-2' : 'justify-start gap-3 pr-8'
+                          )}
+                        >
+                          <BookOpen className="h-4 w-4 flex-shrink-0" />
+                          {!isCollapsed && (
+                            <span className="truncate text-left flex-1 min-w-0">
+                              {book}
+                            </span>
+                          )}
+                        </Button>
+                      </TooltipTrigger>
                       <TooltipContent side="right">{book}</TooltipContent>
+                    </Tooltip>
+                    {/* Delete button - visible on hover */}
+                    {!isCollapsed && (
+                      <button
+                        onClick={(e) => handleDeleteBook(e, book)}
+                        className="absolute right-1 top-1/2 -translate-y-1/2 p-1.5 rounded-md opacity-0 group-hover/book:opacity-100 hover:bg-destructive/20 hover:text-destructive transition-opacity duration-200"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
                     )}
-                  </Tooltip>
+                  </div>
                 ))
               )}
             </div>
@@ -245,6 +298,17 @@ export function AppSidebar() {
             )}
           </div>
         </div>
+
+        {/* Resize Handle */}
+        {!isCollapsed && (
+          <div
+            onMouseDown={handleMouseDown}
+            className={cn(
+              'absolute right-0 top-0 h-full w-1 cursor-ew-resize hover:bg-primary/20 transition-colors',
+              isResizing && 'bg-primary/30'
+            )}
+          />
+        )}
       </div>
 
       {/* PDF UPLOAD MODAL */}
