@@ -38,7 +38,7 @@ export const sourceChatApi = {
   deleteSession: async () => {},
 
   sendMessage: async (_sourceId: string, _sessionId: string, data: { content: string }) => {
-    const response = await fetch("http://localhost:8000/ask", {
+    const response = await fetch("http://192.168.1.101:8000/ask", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

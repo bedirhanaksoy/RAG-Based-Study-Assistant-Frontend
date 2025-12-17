@@ -1,4 +1,4 @@
-let cachedApiUrl = "http://localhost:8000";
+let cachedApiUrl = "http://192.168.1.101:8000";
 
 export async function getApiUrl() {
   return cachedApiUrl;
